@@ -50,18 +50,6 @@ const foodIcon = () =>
         popupAnchor: [0, -40],
     });
 
-const stopIcon = () =>
-    L.divIcon({
-        className: '',
-        html: `<svg width="20" height="28" viewBox="0 0 20 28" xmlns="http://www.w3.org/2000/svg">
-      <path d="M10 0C4.477 0 0 4.477 0 10c0 7.5 10 18 10 18s10-10.5 10-18C20 4.477 15.523 0 10 0z" fill="#8b5cf6" stroke="#7c3aed" stroke-width="1"/>
-      <circle cx="10" cy="10" r="4" fill="white"/>
-    </svg>`,
-        iconSize: [20, 28],
-        iconAnchor: [10, 28],
-        popupAnchor: [0, -28],
-    });
-
 export default function MapView({ travels, onTravelClick, selectedTravel }: MapViewProps) {
     const mapRef = useRef<L.Map | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -96,6 +84,7 @@ export default function MapView({ travels, onTravelClick, selectedTravel }: MapV
         if (!markersRef.current || !mapRef.current) return;
 
         markersRef.current.clearLayers();
+        const markersGroup = markersRef.current;
 
         travels.forEach((travel) => {
             let icon;
@@ -103,7 +92,7 @@ export default function MapView({ travels, onTravelClick, selectedTravel }: MapV
             else if (travel.status === 'food_wishlist') icon = foodIcon();
             else icon = wishlistIcon();
 
-            const marker = L.marker([travel.lat, travel.lng], { icon }).addTo(markersRef.current!);
+            const marker = L.marker([travel.lat, travel.lng], { icon }).addTo(markersGroup);
 
             const statusLabel = travel.status === 'visited' ? 'Visitado' : travel.status === 'food_wishlist' ? 'Comer' : 'Desejo';
             const ratingStars = travel.rating > 0 ? '<span style="color:#eab308;">★</span>'.repeat(travel.rating) : '';
@@ -119,23 +108,6 @@ export default function MapView({ travels, onTravelClick, selectedTravel }: MapV
             `);
 
             marker.on('click', () => onTravelClick(travel));
-
-            // Render stops as smaller markers with lines
-            if (travel.stops && travel.stops.length > 0) {
-                const points: L.LatLngExpression[] = [];
-                travel.stops.forEach(stop => {
-                    if (stop.lat && stop.lng) {
-                        points.push([stop.lat, stop.lng]);
-                        const sMarker = L.marker([stop.lat, stop.lng], { icon: stopIcon() }).addTo(markersRef.current!);
-                        sMarker.bindPopup(`<div class="popup-title">${stop.city}</div><div class="popup-subtitle">Parada</div>${stop.note ? `<div class="popup-return">${stop.note}</div>` : ''}`);
-                    }
-                });
-                points.push([travel.lat, travel.lng]);
-
-                if (points.length >= 2) {
-                    L.polyline(points, { color: '#8b5cf6', weight: 2, opacity: 0.6, dashArray: '6,4' }).addTo(markersRef.current!);
-                }
-            }
         });
     }, [travels, onTravelClick]);
 

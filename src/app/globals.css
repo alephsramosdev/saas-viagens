@@ -47,6 +47,8 @@ body {
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
 }
 
 a {
@@ -59,6 +61,7 @@ a {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -544,6 +547,7 @@ a {
 
 .modal-detail {
   max-width: 620px;
+  overflow: hidden;
 }
 
 .modal::-webkit-scrollbar {
@@ -705,12 +709,14 @@ a {
   outline: none;
   transition: border-color 0.2s;
   width: 100%;
+  -webkit-appearance: none;
 }
 
 .form-input:focus,
 .form-select:focus,
 .form-textarea:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
 }
 
 .form-textarea {
@@ -722,6 +728,8 @@ a {
 .form-select {
   cursor: pointer;
   appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
@@ -1865,68 +1873,436 @@ a {
 
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
+
+  /* Prevent iOS input zoom */
+  .form-input,
+  .form-select,
+  .form-textarea {
+    font-size: 16px;
+  }
+
   .app-body {
-    flex-direction: column-reverse;
+    flex-direction: column;
   }
 
   .sidebar {
     width: 100%;
-    height: 45vh;
+    height: 50vh;
     border-right: none;
     border-top: 1px solid var(--border);
+    order: 2;
   }
 
   .map-container {
-    height: 55vh;
+    height: 50vh;
+    flex: none;
+    order: 1;
   }
 
-  .header-stats {
-    display: none;
+  /* Header mobile */
+  .app-header {
+    padding: 10px 12px;
   }
 
   .app-header h1 {
-    font-size: 1.05rem;
+    font-size: 1rem;
   }
 
+  .header-stats {
+    display: flex;
+    gap: 8px;
+    font-size: 0.72rem;
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+
+  .header-stats .stat-item:not(.highlight) {
+    display: none;
+  }
+
+  .header-profiles {
+    margin-right: 4px;
+  }
+
+  .header-avatar-btn {
+    width: 26px;
+    height: 26px;
+  }
+
+  /* Travel card mobile */
   .travel-card-actions {
     opacity: 1;
   }
 
+  /* FAB */
   .add-btn {
-    bottom: 16px;
-    right: 16px;
+    bottom: 12px;
+    right: 12px;
     width: 48px;
     height: 48px;
-    font-size: 24px;
+    font-size: 22px;
   }
 
-  .modal {
-    max-height: 95vh;
-    margin: 10px;
+  /* Modal full screen */
+  .modal-overlay {
+    padding: 0;
+    align-items: stretch;
   }
 
+  .modal,
+  .modal.modal-sm,
+  .modal.modal-detail {
+    max-width: 100%;
+    max-height: 100vh;
+    height: 100%;
+    border-radius: 0;
+    margin: 0;
+  }
+
+  .modal-header {
+    padding: 12px 16px;
+  }
+
+  .modal-header h2 {
+    font-size: 1rem;
+  }
+
+  .modal-body {
+    padding: 16px;
+    gap: 14px;
+  }
+
+  /* Step indicator mobile */
+  .step-indicator {
+    padding: 10px 12px;
+    gap: 2px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .step-label {
+    font-size: 0.58rem;
+  }
+
+  .step-num {
+    width: 22px;
+    height: 22px;
+    font-size: 0.62rem;
+  }
+
+  /* Form elements mobile */
   .form-row {
     flex-direction: column;
+    gap: 10px;
+  }
+
+  .form-input,
+  .form-select {
+    padding: 12px 14px;
+  }
+
+  .form-textarea {
+    padding: 12px 14px;
+  }
+
+  /* Status toggle mobile */
+  .status-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .status-option {
+    flex-direction: row;
+    justify-content: center;
+    min-width: unset;
+    padding: 10px 8px;
+    font-size: 0.75rem;
+  }
+
+  /* Activity grid mobile */
+  .activity-grid {
+    gap: 5px;
+  }
+
+  .activity-chip {
+    padding: 6px 8px;
+    font-size: 0.7rem;
+  }
+
+  /* Transport grid mobile */
+  .transport-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Detail modal mobile */
+  .detail-content {
+    max-height: none;
+    padding: 14px;
+  }
+
+  .detail-city {
+    font-size: 1.15rem;
   }
 
   .detail-info-grid {
     grid-template-columns: 1fr;
   }
 
-  .status-toggle-3 {
+  .detail-split-rating {
     flex-direction: column;
-  }
-
-  .transport-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .stats-grid {
-    grid-template-columns: 1fr 1fr;
+    gap: 8px;
   }
 
   .detail-hero {
     height: 140px;
+  }
+
+  .detail-swiper-main {
+    aspect-ratio: 16 / 9;
+  }
+
+  .detail-gallery-swiper {
+    border-radius: 0;
+  }
+
+  /* Stats grid */
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Timeline route mobile */
+  .timeline-route .form-row {
+    flex-direction: row;
+    gap: 6px;
+  }
+
+  .timeline-content {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .timeline-content .form-input,
+  .timeline-content .form-select {
+    font-size: 16px;
+  }
+
+  /* City dropdown mobile */
+  .city-dropdown {
+    max-height: 150px;
+  }
+
+  /* Navigation buttons mobile */
+  .form-nav {
+    padding: 12px 16px;
+    gap: 8px;
+  }
+
+  .btn {
+    padding: 10px 16px;
+    font-size: 0.82rem;
+  }
+
+  .btn-save {
+    padding: 12px 20px;
+    font-size: 0.88rem;
+  }
+
+  /* Dual rating mobile */
+  .dual-rating-card {
+    padding: 12px;
+  }
+
+  .rating-person-card {
+    padding: 10px;
+  }
+
+  .rating-star-btn {
+    padding: 3px;
+  }
+
+  /* Vehicle card mobile */
+  .vehicle-card-full {
+    flex-wrap: nowrap;
+  }
+
+  .vehicle-card-full-img {
+    width: 48px;
+    height: 34px;
+  }
+
+  /* Sidebar filters mobile */
+  .sidebar-header {
+    padding: 10px 12px;
+  }
+
+  .sidebar-filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+  }
+
+  .filter-btn {
+    flex-shrink: 0;
+    padding: 5px 8px;
+    font-size: 0.7rem;
+  }
+
+  .sidebar-list {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .sidebar-tab {
+    padding: 10px 6px;
+    font-size: 0.72rem;
+    gap: 4px;
+  }
+
+  /* Would return toggle mobile */
+  .would-return-toggle {
+    gap: 6px;
+  }
+
+  .return-option {
+    padding: 10px;
+    font-size: 0.8rem;
+  }
+
+  /* Food wish items */
+  .food-wish-item {
+    flex-direction: column;
+    gap: 6px;
+    align-items: stretch;
+  }
+
+  .food-wish-item .food-wish-remove {
+    align-self: flex-end;
+  }
+
+  /* Photo preview */
+  .photo-preview {
+    width: 64px;
+    height: 64px;
+  }
+
+  /* Slider container */
+  .slider-manual {
+    max-width: none;
+    justify-content: center;
+  }
+
+  /* Time inputs mobile */
+  .time-inputs {
+    gap: 8px;
+  }
+
+  /* Budget */
+  .budget-section {
+    padding: 16px;
+  }
+
+  .budget-section .form-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* Hotel items */
+  .hotel-item-card {
+    padding: 10px 12px;
+  }
+
+  .hotel-rating-section {
+    padding: 6px;
+  }
+
+  /* Toast mobile */
+  .toast {
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    transform: none;
+    text-align: center;
+  }
+
+  /* Celebration */
+  .celebration-card {
+    padding: 24px 32px;
+    margin: 16px;
+  }
+
+  .celebration-title {
+    font-size: 1.2rem;
+  }
+
+  /* Swiper navigation mobile */
+  .detail-swiper-main .swiper-button-next::after,
+  .detail-swiper-main .swiper-button-prev::after {
+    font-size: 14px;
+  }
+
+  .detail-swiper-thumbs {
+    padding: 4px 6px;
+  }
+
+  .detail-swiper-thumb-img {
+    height: 40px;
+  }
+
+  /* Map popup mobile */
+  .leaflet-popup-content {
+    margin: 8px 10px !important;
+    font-size: 0.8rem !important;
+  }
+
+  /* Vehicle select mobile */
+  .vehicle-select {
+    gap: 6px;
+  }
+
+  .vehicle-option {
+    padding: 8px 10px;
+    font-size: 0.72rem;
+    min-width: 70px;
+  }
+
+  /* Profile editor mobile */
+  .profile-photo-circle {
+    width: 80px;
+    height: 80px;
+  }
+
+  /* Fix leaflet zoom controls */
+  .leaflet-control-zoom {
+    margin-top: 8px !important;
+    margin-left: 8px !important;
+  }
+
+  /* Add visit form mobile */
+  .add-visit-form {
+    padding: 10px;
+  }
+
+  /* Cover photo preview */
+  .cover-photo-preview {
+    aspect-ratio: 16 / 10;
+  }
+
+  /* Hotel card ratings */
+  .hotel-card-ratings {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  /* Detail badges wrap */
+  .detail-badges {
+    gap: 4px;
+  }
+
+  .detail-meta-row {
+    gap: 8px;
+    font-size: 0.7rem;
   }
 }
 
@@ -1998,6 +2374,7 @@ a {
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
+  white-space: nowrap;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   color: var(--text-primary);
@@ -2595,23 +2972,30 @@ a {
   width: 100%;
   border-radius: var(--radius) var(--radius) 0 0;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .detail-swiper-main {
   width: 100%;
-  height: 260px;
+  aspect-ratio: 16 / 10;
   background: var(--bg-primary);
+}
+
+.detail-swiper-main .swiper-slide {
+  height: 100%;
 }
 
 .detail-swiper-img {
   width: 100%;
-  height: 260px;
+  height: 100%;
   object-fit: cover;
+  display: block;
 }
 
 .detail-swiper-thumbs {
   padding: 6px 8px;
   background: var(--bg-primary);
+  flex-shrink: 0;
 }
 
 .detail-swiper-thumb-img {
@@ -2622,6 +3006,7 @@ a {
   cursor: pointer;
   opacity: 0.5;
   transition: opacity 0.2s;
+  display: block;
 }
 
 .swiper-slide-thumb-active .detail-swiper-thumb-img {
@@ -2633,21 +3018,34 @@ a {
 .detail-swiper-main .swiper-button-prev {
   color: white;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  width: 36px;
+  height: 36px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 50%;
+  backdrop-filter: blur(4px);
 }
 
 .detail-swiper-main .swiper-button-next::after,
 .detail-swiper-main .swiper-button-prev::after {
-  font-size: 18px;
+  font-size: 14px;
+}
+
+.detail-swiper-main .swiper-pagination {
+  bottom: 8px !important;
 }
 
 .detail-swiper-main .swiper-pagination-bullet {
   background: white;
   opacity: 0.5;
+  width: 7px;
+  height: 7px;
 }
 
 .detail-swiper-main .swiper-pagination-bullet-active {
   opacity: 1;
   background: var(--accent);
+  width: 20px;
+  border-radius: 4px;
 }
 
 /* ---- Detail Content ---- */
@@ -2656,8 +3054,9 @@ a {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: 60vh;
+  flex: 1;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .detail-header {
@@ -3583,6 +3982,7 @@ a {
 /* ===== City Selector Group ===== */
 .city-selector-group {
   position: relative;
+  width: 100%;
 }
 
 .loading-hint {
@@ -3797,7 +4197,8 @@ a {
 /* ===== Responsive fixes for new elements ===== */
 @media (max-width: 768px) {
   .status-toggle {
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
   }
 
   .status-option {
@@ -3819,7 +4220,7 @@ a {
   }
 
   .vehicle-card-full {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
 }
 
