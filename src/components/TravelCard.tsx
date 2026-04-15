@@ -1,7 +1,7 @@
 'use client';
 
 import { Travel, TRANSPORT_LABELS, ACTIVITY_OPTIONS, Vehicle } from '@/types/travel';
-import { FaStar, FaMapMarkerAlt, FaCalendarAlt, FaClock, FaRoute, FaTrash, FaHeart, FaUtensils, FaCheck, FaCamera, FaCar, FaMotorcycle, FaBus, FaPlane, FaTrain, FaBicycle, FaWalking, FaRocket, FaUmbrellaBeach, FaHiking, FaLandmark, FaShoppingBag, FaParachuteBox, FaSpa, FaMoon, FaLeaf, FaChurch, FaFutbol, FaWater, FaPizzaSlice, FaFilm, FaGlassCheers, FaMusic, FaCoffee, FaSwimmingPool, FaTree, FaPaintBrush } from 'react-icons/fa';
+import { FaStar, FaMapMarkerAlt, FaCalendarAlt, FaClock, FaRoute, FaTrash, FaHeart, FaUtensils, FaCheck, FaCamera, FaCar, FaMotorcycle, FaBus, FaPlane, FaTrain, FaBicycle, FaWalking, FaRocket, FaUmbrellaBeach, FaHiking, FaLandmark, FaShoppingBag, FaParachuteBox, FaSpa, FaMoon, FaLeaf, FaChurch, FaFutbol, FaWater, FaPizzaSlice, FaFilm, FaGlassCheers, FaMusic, FaCoffee, FaSwimmingPool, FaTree, FaPaintBrush, FaWineGlassAlt, FaHamburger, FaIceCream, FaAppleAlt, FaConciergeBell } from 'react-icons/fa';
 import type { TransportType } from '@/types/travel';
 
 const TRANSPORT_ICON_MAP: Record<TransportType, React.ReactNode> = {
@@ -23,6 +23,8 @@ const ACTIVITY_ICON_MAP: Record<string, React.ReactNode> = {
     FaPizzaSlice: <FaPizzaSlice size={10} />, FaFilm: <FaFilm size={10} />, FaGlassCheers: <FaGlassCheers size={10} />,
     FaMusic: <FaMusic size={10} />, FaCoffee: <FaCoffee size={10} />, FaSwimmingPool: <FaSwimmingPool size={10} />,
     FaTree: <FaTree size={10} />, FaPaintBrush: <FaPaintBrush size={10} />,
+    FaWineGlassAlt: <FaWineGlassAlt size={10} />, FaHamburger: <FaHamburger size={10} />,
+    FaIceCream: <FaIceCream size={10} />, FaAppleAlt: <FaAppleAlt size={10} />, FaConciergeBell: <FaConciergeBell size={10} />,
 };
 
 interface TravelCardProps {
@@ -64,12 +66,6 @@ export default function TravelCard({ travel, onClick, onDelete, vehicles }: Trav
             )}
 
             <div className="travel-card-content">
-                <div className="travel-card-actions">
-                    <button className="card-action-btn" title="Excluir" onClick={(e) => { e.stopPropagation(); onDelete(travel.id); }}>
-                        <FaTrash size={12} />
-                    </button>
-                </div>
-
                 <div className="travel-card-header">
                     <div>
                         <div className="travel-card-title">
@@ -78,9 +74,16 @@ export default function TravelCard({ travel, onClick, onDelete, vehicles }: Trav
                         </div>
                         <div className="travel-card-state"><FaMapMarkerAlt size={10} /> {travel.state}</div>
                     </div>
-                    <span className={`travel-card-badge ${travel.status}`}>
-                        {travel.status === 'visited' ? <><FaCheck size={9} /> Visitado</> : travel.status === 'food_wishlist' ? <><FaUtensils size={9} /> Comer</> : travel.status === 'date' ? <><FaHeart size={9} /> Date</> : <><FaStar size={9} /> Desejo</>}
-                    </span>
+                    <div className="travel-card-header-right">
+                        <span className={`travel-card-badge ${travel.status}`}>
+                            {travel.status === 'visited' ? <><FaCheck size={9} /> Visitado</> : travel.status === 'food_wishlist' ? <><FaUtensils size={9} /> Comer</> : travel.status === 'date' ? <><FaHeart size={9} /> Date</> : <><FaStar size={9} /> Desejo</>}
+                        </span>
+                        <div className="travel-card-actions">
+                            <button className="card-action-btn" title="Excluir" onClick={(e) => { e.stopPropagation(); onDelete(travel.id); }}>
+                                <FaTrash size={12} />
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 {avgRating > 0 && (

@@ -11,7 +11,7 @@ import {
     FaPizzaSlice, FaFilm, FaGlassCheers, FaMusic, FaCoffee, FaSwimmingPool, FaTree, FaPaintBrush,
     FaPlus, FaTrash, FaTimes, FaStar, FaMapMarkerAlt, FaCompass, FaClock, FaRoute,
     FaImages, FaMoneyBillWave, FaCalendarAlt, FaPencilAlt, FaChevronRight, FaChevronLeft,
-    FaCheck, FaHotel, FaUser, FaUserFriends
+    FaCheck, FaHotel, FaUser, FaUserFriends, FaWineGlassAlt, FaHamburger, FaIceCream, FaAppleAlt, FaConciergeBell
 } from 'react-icons/fa';
 
 const TRANSPORT_ICON_MAP: Record<TransportType, React.ReactNode> = {
@@ -27,6 +27,8 @@ const ACTIVITY_ICON_MAP: Record<string, React.ReactNode> = {
     FaPizzaSlice: <FaPizzaSlice />, FaFilm: <FaFilm />, FaGlassCheers: <FaGlassCheers />,
     FaMusic: <FaMusic />, FaCoffee: <FaCoffee />, FaSwimmingPool: <FaSwimmingPool />,
     FaTree: <FaTree />, FaPaintBrush: <FaPaintBrush />,
+    FaWineGlassAlt: <FaWineGlassAlt />, FaHamburger: <FaHamburger />,
+    FaIceCream: <FaIceCream />, FaAppleAlt: <FaAppleAlt />, FaConciergeBell: <FaConciergeBell />,
 };
 
 interface TravelFormProps {
@@ -69,6 +71,10 @@ export default function TravelForm({ onClose, onSave, editTravel, vehicles, onAd
     const [saving, setSaving] = useState(false);
     const [hoverP1, setHoverP1] = useState(0);
     const [hoverP2, setHoverP2] = useState(0);
+    const [confirmedLat, setConfirmedLat] = useState(editTravel?.lat || 0);
+    const [confirmedLng, setConfirmedLng] = useState(editTravel?.lng || 0);
+    const [showMapConfirm, setShowMapConfirm] = useState(false);
+    const [loadingCoords, setLoadingCoords] = useState(false);
 
     const p1Name = profiles.find(p => p.id === 'p1')?.name || 'Aleph';
     const p2Name = profiles.find(p => p.id === 'p2')?.name || 'Alice';
@@ -83,6 +89,8 @@ export default function TravelForm({ onClose, onSave, editTravel, vehicles, onAd
     const [originCities, setOriginCities] = useState<string[]>([]);
     const [originCitySearch, setOriginCitySearch] = useState('');
     const [showOriginDropdown, setShowOriginDropdown] = useState(false);
+    const [showStateDropdown, setShowStateDropdown] = useState(false);
+    const [stateSearch, setStateSearch] = useState('');
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const coverInputRef = useRef<HTMLInputElement>(null);
@@ -136,9 +144,24 @@ export default function TravelForm({ onClose, onSave, editTravel, vehicles, onAd
         if (originState) loadOriginCities(originState);
     }, [originState, loadOriginCities]);
 
+    // Auto-load coords when city+state selected
+    useEffect(() => {
+        if (city && state && !editTravel) {
+            setLoadingCoords(true);
+            searchCityCoords(city, state).then(coords => {
+                if (coords) {
+                    setConfirmedLat(coords.lat);
+                    setConfirmedLng(coords.lng);
+                    setShowMapConfirm(true);
+                }
+                setLoadingCoords(false);
+            });
+        }
+    }, [city, state, editTravel]);
+
     const filteredCities = cities.filter(c =>
-        c.toLowerCase().includes((citySearch || city).toLowerCase())
-    ).slice(0, 20);
+        c.toLowerCase().includes((citySearch || '').toLowerCase())
+    ).slice(0, 30);
 
     const filteredOriginCities = originCities.filter(c =>
         c.toLowerCase().includes((originCitySearch || originCity).toLowerCase())
@@ -227,10 +250,12 @@ export default function TravelForm({ onClose, onSave, editTravel, vehicles, onAd
         if (!city.trim() || !state) return;
         setSaving(true);
         try {
-            let lat = editTravel?.lat || -14.235;
-            let lng = editTravel?.lng || -51.9253;
-            const coords = await searchCityCoords(city, state);
-            if (coords) { lat = coords.lat; lng = coords.lng; }
+            let lat = confirmedLat || editTravel?.lat || -14.235;
+            let lng = confirmedLng || editTravel?.lng || -51.9253;
+            if (!confirmedLat && !confirmedLng) {
+                const coords = await searchCityCoords(city, state);
+                if (coords) { lat = coords.lat; lng = coords.lng; }
+            }
 
             const resolvedStops = await Promise.all(stops.map(async (s) => {
                 if (s.lat && s.lng) return s;
@@ -322,37 +347,54 @@ export default function TravelForm({ onClose, onSave, editTravel, vehicles, onAd
     // Render city selector (used in step 0 and date step)
     const renderCitySelector = () => (
         <>
-            <div className="form-row">
-                <div className="form-group" style={{ flex: 1 }}>
-                    <label><FaMapMarkerAlt size={11} /> Estado</label>
-                    <select className="form-select" value={state} onChange={(e) => { setState(e.target.value); setCity(''); setCitySearch(''); }}>
-                        <option value="">Selecione o estado...</option>
-                        {BRAZILIAN_STATES.map((s) => (
-                            <option key={s.uf} value={s.name}>{s.name} ({s.uf})</option>
-                        ))}
-                    </select>
+            <div className="form-group">
+                <label><FaMapMarkerAlt size={11} /> Estado</label>
+                <div className="custom-select-wrapper" ref={cityDropdownRef}>
+                    <button type="button" className="custom-select-trigger" onClick={() => setShowStateDropdown(!showStateDropdown)}>
+                        {state ? <><FaMapMarkerAlt size={10} /> {state}</> : <span className="placeholder-text">Selecione o estado...</span>}
+                        <FaChevronRight size={10} className={`select-arrow ${showStateDropdown ? 'open' : ''}`} />
+                    </button>
+                    {showStateDropdown && (
+                        <div className="custom-select-dropdown">
+                            <input className="custom-select-search" type="text" placeholder="Buscar estado..."
+                                value={stateSearch} onChange={(e) => setStateSearch(e.target.value)} autoFocus />
+                            <div className="custom-select-options">
+                                {BRAZILIAN_STATES.filter(s => s.name.toLowerCase().includes(stateSearch.toLowerCase()) || s.uf.toLowerCase().includes(stateSearch.toLowerCase())).map((s) => (
+                                    <button key={s.uf} type="button" className={`custom-select-option ${state === s.name ? 'selected' : ''}`}
+                                        onClick={() => { setState(s.name); setCity(''); setCitySearch(''); setShowStateDropdown(false); setStateSearch(''); }}>
+                                        <FaMapMarkerAlt size={9} /> {s.name} <span className="option-uf">({s.uf})</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
             {state && (
-                <div className="form-group city-selector-group" ref={cityDropdownRef}>
+                <div className="form-group">
                     <label><FaMapMarkerAlt size={11} /> Cidade {loadingCities && <span className="loading-hint">carregando...</span>}</label>
-                    <input className="form-input" type="text" placeholder="Digite para buscar..."
-                        value={city || citySearch}
-                        onChange={(e) => { setCitySearch(e.target.value); setCity(e.target.value); setShowCityDropdown(true); }}
-                        onFocus={() => setShowCityDropdown(true)}
-                        onBlur={() => setTimeout(() => setShowCityDropdown(false), 250)}
-                    />
-                    {showCityDropdown && filteredCities.length > 0 && (
-                        <div className="city-dropdown">
-                            {filteredCities.map(c => (
-                                <button key={c} type="button" className={`city-dropdown-item ${c === city ? 'selected' : ''}`}
-                                    onMouseDown={(e) => { e.preventDefault(); setCity(c); setCitySearch(''); setShowCityDropdown(false); }}>
-                                    <FaMapMarkerAlt size={9} /> {c}
-                                </button>
-                            ))}
-                        </div>
-                    )}
+                    <div className="custom-select-wrapper">
+                        <button type="button" className="custom-select-trigger" onClick={() => setShowCityDropdown(!showCityDropdown)}>
+                            {city ? <><FaMapMarkerAlt size={10} /> {city}</> : <span className="placeholder-text">Selecione a cidade...</span>}
+                            <FaChevronRight size={10} className={`select-arrow ${showCityDropdown ? 'open' : ''}`} />
+                        </button>
+                        {showCityDropdown && (
+                            <div className="custom-select-dropdown">
+                                <input className="custom-select-search" type="text" placeholder="Buscar cidade..."
+                                    value={citySearch} onChange={(e) => setCitySearch(e.target.value)} autoFocus />
+                                <div className="custom-select-options">
+                                    {filteredCities.map(c => (
+                                        <button key={c} type="button" className={`custom-select-option ${c === city ? 'selected' : ''}`}
+                                            onClick={() => { setCity(c); setCitySearch(''); setShowCityDropdown(false); }}>
+                                            <FaMapMarkerAlt size={9} /> {c}
+                                        </button>
+                                    ))}
+                                    {filteredCities.length === 0 && <div className="custom-select-empty">Nenhuma cidade encontrada</div>}
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
         </>
@@ -421,6 +463,37 @@ export default function TravelForm({ onClose, onSave, editTravel, vehicles, onAd
 
                             {renderCitySelector()}
 
+                            {/* Map confirmation */}
+                            {showMapConfirm && confirmedLat !== 0 && (
+                                <div className="form-group">
+                                    <label><FaMapMarkerAlt size={11} /> Confirme a localização</label>
+                                    <div className="map-confirm-container">
+                                        <div className="map-confirm-info">
+                                            <span className="map-confirm-city">{city}, {state}</span>
+                                            <span className="map-confirm-hint">Clique no mapa para ajustar o ponto</span>
+                                        </div>
+                                        <div className="map-confirm-preview" id="map-confirm-preview" ref={(el) => {
+                                            if (el && !(el as HTMLElement & { _leaflet_map?: boolean })._leaflet_map) {
+                                                (el as HTMLElement & { _leaflet_map?: boolean })._leaflet_map = true;
+                                                import('leaflet').then(L => {
+                                                    const map = L.map(el, { center: [confirmedLat, confirmedLng], zoom: 12, zoomControl: true, attributionControl: false });
+                                                    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 19 }).addTo(map);
+                                                    const marker = L.marker([confirmedLat, confirmedLng], { draggable: true }).addTo(map);
+                                                    marker.on('dragend', () => { const pos = marker.getLatLng(); setConfirmedLat(pos.lat); setConfirmedLng(pos.lng); });
+                                                    map.on('click', (e: L.LeafletMouseEvent) => { marker.setLatLng(e.latlng); setConfirmedLat(e.latlng.lat); setConfirmedLng(e.latlng.lng); });
+                                                });
+                                            }
+                                        }} />
+                                        <div className="map-confirm-check">
+                                            <FaCheck size={10} /> Localização confirmada
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            {loadingCoords && city && state && (
+                                <div className="map-loading-hint"><div className="loading-dot" /><div className="loading-dot" /><div className="loading-dot" /> Buscando localização...</div>
+                            )}
+
                             {status === 'visited' && (
                                 <div className="form-group">
                                     <label><FaCalendarAlt size={11} /> Quando fomos?</label>
@@ -474,7 +547,7 @@ export default function TravelForm({ onClose, onSave, editTravel, vehicles, onAd
                         <>
                             <div className="timeline-route">
                                 <div className="timeline-node origin">
-                                    <div className="timeline-dot"><FaCompass size={12} /></div>
+                                    <div className="timeline-dot origin"><FaCompass size={12} /></div>
                                     <div className="timeline-content">
                                         <span className="timeline-label">Saímos de</span>
                                         <div className="form-row" style={{ marginTop: 6 }}>
@@ -552,14 +625,59 @@ export default function TravelForm({ onClose, onSave, editTravel, vehicles, onAd
 
                             <div className="form-group">
                                 <label><FaClock size={11} /> Tempo de viagem</label>
-                                <div className="time-inputs">
-                                    <div className="time-input-group">
-                                        <input className="form-input" type="number" min={0} value={travelTimeHours || ''} onChange={(e) => setTravelTimeHours(parseInt(e.target.value) || 0)} />
-                                        <span>horas</span>
+                                <div className="time-wheel-container">
+                                    <div className="time-wheel-group">
+                                        <span className="time-wheel-label">Horas</span>
+                                        <div className="time-wheel">
+                                            <div className="time-wheel-highlight" />
+                                            <div className="time-wheel-scroll" ref={(el) => {
+                                                if (el && !el.dataset.init) {
+                                                    el.dataset.init = '1';
+                                                    const targetIndex = travelTimeHours;
+                                                    el.scrollTop = targetIndex * 40;
+                                                    el.addEventListener('scroll', () => {
+                                                        const idx = Math.round(el.scrollTop / 40);
+                                                        const val = Math.max(0, Math.min(idx, 48));
+                                                        if (val !== travelTimeHours) setTravelTimeHours(val);
+                                                    });
+                                                }
+                                            }}>
+                                                <div className="time-wheel-spacer" />
+                                                {Array.from({ length: 49 }, (_, i) => (
+                                                    <div key={i} className={`time-wheel-item ${i === travelTimeHours ? 'active' : ''}`}>
+                                                        {String(i).padStart(2, '0')}
+                                                    </div>
+                                                ))}
+                                                <div className="time-wheel-spacer" />
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="time-input-group">
-                                        <input className="form-input" type="number" min={0} max={59} value={travelTimeMinutes || ''} onChange={(e) => setTravelTimeMinutes(parseInt(e.target.value) || 0)} />
-                                        <span>min</span>
+                                    <span className="time-wheel-separator">:</span>
+                                    <div className="time-wheel-group">
+                                        <span className="time-wheel-label">Min</span>
+                                        <div className="time-wheel">
+                                            <div className="time-wheel-highlight" />
+                                            <div className="time-wheel-scroll" ref={(el) => {
+                                                if (el && !el.dataset.init) {
+                                                    el.dataset.init = '1';
+                                                    const targetIndex = travelTimeMinutes;
+                                                    el.scrollTop = targetIndex * 40;
+                                                    el.addEventListener('scroll', () => {
+                                                        const idx = Math.round(el.scrollTop / 40);
+                                                        const val = Math.max(0, Math.min(idx, 59));
+                                                        if (val !== travelTimeMinutes) setTravelTimeMinutes(val);
+                                                    });
+                                                }
+                                            }}>
+                                                <div className="time-wheel-spacer" />
+                                                {Array.from({ length: 60 }, (_, i) => (
+                                                    <div key={i} className={`time-wheel-item ${i === travelTimeMinutes ? 'active' : ''}`}>
+                                                        {String(i).padStart(2, '0')}
+                                                    </div>
+                                                ))}
+                                                <div className="time-wheel-spacer" />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -567,15 +685,25 @@ export default function TravelForm({ onClose, onSave, editTravel, vehicles, onAd
                             <div className="form-group">
                                 <label>Como fomos?</label>
                                 <div className="transport-grid">
-                                    {(Object.entries(TRANSPORT_LABELS) as [TransportType, string][]).map(([key, label]) => (
-                                        <button key={key} type="button" className={`transport-option ${transportType === key ? 'selected' : ''}`} onClick={() => setTransportType(key)}>
-                                            <span className="transport-icon">{TRANSPORT_ICON_MAP[key]}</span><span>{label}</span>
-                                        </button>
-                                    ))}
+                                    {(() => {
+                                        const vehicleTypes = new Set(vehicles.map(v => v.type));
+                                        const transportEntries = (Object.entries(TRANSPORT_LABELS) as [TransportType, string][])
+                                            .filter(([key]) => vehicleTypes.has(key) || !['carro', 'moto'].includes(key));
+                                        return transportEntries.map(([key, label]) => (
+                                            <button key={key} type="button" className={`transport-option ${transportType === key ? 'selected' : ''}`} onClick={() => {
+                                                setTransportType(key);
+                                                const matchingVehicles = vehicles.filter(v => v.type === key);
+                                                if (matchingVehicles.length === 1) setVehicleId(matchingVehicles[0].id);
+                                                else if (!matchingVehicles.some(v => v.id === vehicleId)) setVehicleId('');
+                                            }}>
+                                                <span className="transport-icon">{TRANSPORT_ICON_MAP[key]}</span><span>{label}</span>
+                                            </button>
+                                        ));
+                                    })()}
                                 </div>
                             </div>
 
-                            {(transportType === 'carro' || transportType === 'moto') && (
+                            {vehicles.filter(v => v.type === transportType).length > 0 && (
                                 <div className="form-group">
                                     <label><FaCar size={11} /> Veículo</label>
                                     <div className="vehicle-select">
@@ -601,6 +729,28 @@ export default function TravelForm({ onClose, onSave, editTravel, vehicles, onAd
                                 <label><FaCalendarAlt size={11} /> Quando queremos ir?</label>
                                 <input className="form-input" type="date" value={visitDate} onChange={(e) => setVisitDate(e.target.value)} />
                             </div>
+
+                            {/* Multiple cities / stops for wishlist */}
+                            <div className="form-group">
+                                <label><FaRoute size={11} /> Paradas na viagem</label>
+                                {stops.map((s, i) => (
+                                    <div key={i} className="hotel-item">
+                                        <div className="hotel-item-header">
+                                            <input className="form-input" placeholder="Cidade" value={s.city} onChange={(e) => updateStop(i, 'city', e.target.value)} />
+                                            <select className="form-select" value={s.state} onChange={(e) => updateStop(i, 'state', e.target.value)} style={{ maxWidth: 80 }}>
+                                                <option value="">UF</option>
+                                                {BRAZILIAN_STATES.map((st) => <option key={st.uf} value={st.uf}>{st.uf}</option>)}
+                                            </select>
+                                            <button type="button" className="btn-icon-sm" onClick={() => removeStop(i)}><FaTrash size={10} /></button>
+                                        </div>
+                                        <input className="form-input" placeholder="Nota rápida..." value={s.note} onChange={(e) => updateStop(i, 'note', e.target.value)} style={{ fontSize: '0.75rem' }} />
+                                    </div>
+                                ))}
+                                <button type="button" className="add-stop-btn" onClick={addStop}>
+                                    <FaPlus size={10} /> Adicionar parada
+                                </button>
+                            </div>
+
                             <div className="form-group">
                                 <label><FaPencilAlt size={11} /> Anotações</label>
                                 <textarea className="form-textarea" placeholder="O que pesquisamos?" value={opinion} onChange={(e) => setOpinion(e.target.value)} />

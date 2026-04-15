@@ -58,6 +58,11 @@ export const ACTIVITY_OPTIONS = [
     { id: 'piscina', label: 'Piscina', icon: 'FaSwimmingPool', color: '#0e7490' },
     { id: 'parque', label: 'Parque', icon: 'FaTree', color: '#16a34a' },
     { id: 'museu', label: 'Museu', icon: 'FaPaintBrush', color: '#9333ea' },
+    { id: 'bistro', label: 'Bistrô', icon: 'FaWineGlassAlt', color: '#7c2d12' },
+    { id: 'hamburgueria', label: 'Hamburgueria', icon: 'FaHamburger', color: '#b45309' },
+    { id: 'sorveteria', label: 'Sorveteria', icon: 'FaIceCream', color: '#db2777' },
+    { id: 'acaiteria', label: 'Açaíteria', icon: 'FaAppleAlt', color: '#581c87' },
+    { id: 'restaurante', label: 'Restaurante', icon: 'FaConciergeBell', color: '#dc2626' },
 ];
 
 export interface FoodWish {

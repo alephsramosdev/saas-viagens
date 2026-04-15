@@ -11,7 +11,7 @@ import VehicleForm from '@/components/VehicleForm';
 import StatsPanel from '@/components/StatsPanel';
 import Celebration from '@/components/Celebration';
 import ProfileEditor from '@/components/ProfileEditor';
-import { FaPlus, FaMap, FaPlaneDeparture, FaChartBar, FaCar, FaCheck, FaStar, FaUtensils, FaRoute, FaHeart, FaTrash, FaPencilAlt, FaUser } from 'react-icons/fa';
+import { FaPlus, FaMap, FaPlaneDeparture, FaChartBar, FaCar, FaCheck, FaStar, FaUtensils, FaRoute, FaHeart, FaTrash, FaPencilAlt, FaUser, FaChevronLeft, FaChevronRight, FaHome } from 'react-icons/fa';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -37,6 +37,10 @@ export default function HomeClient() {
   const [loading, setLoading] = useState(true);
   const [celebration, setCelebration] = useState<{ message: string; icon: string } | null>(null);
   const celebrationQueue = useRef<{ message: string; icon: string }[]>([]);
+  const [stateImages, setStateImages] = useState<Record<string, string>>({});
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [homeLocation, setHomeLocation] = useState<{ city: string; state: string; lat: number; lng: number } | null>(null);
+  const [missionToast, setMissionToast] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -47,6 +51,13 @@ export default function HomeClient() {
         setDiscardedCities(d);
         setMissions(m);
         setProfiles(p);
+        // Load state images from localStorage
+        try {
+          const saved = localStorage.getItem('stateImages');
+          if (saved) setStateImages(JSON.parse(saved));
+          const savedHome = localStorage.getItem('homeLocation');
+          if (savedHome) setHomeLocation(JSON.parse(savedHome));
+        } catch { /* ignore */ }
       } catch (e) {
         console.error('Erro ao carregar dados:', e);
       } finally {
@@ -123,6 +134,10 @@ export default function HomeClient() {
         updated.push(m2);
         if (isNowCompleted && !wasCompleted) {
           triggerCelebration(`Missão completa: ${mission.title}`, mission.icon);
+        } else if (!isNowCompleted && progress >= mission.target * 0.8) {
+          // Near-complete mission toast (Item 8)
+          setMissionToast(`Quase lá! "${mission.title}" — ${progress}/${mission.target}`);
+          setTimeout(() => setMissionToast(null), 4000);
         }
       }
     }
@@ -155,6 +170,26 @@ export default function HomeClient() {
       setEditTravel(null);
       setSelectedTravel(travel);
       await updateMissionsProgress(newTravels);
+
+      // Auto-create mission from wishlist (Item 12)
+      if (!isEdit && (travel.status === 'wishlist' || travel.status === 'food_wishlist')) {
+        const missionId = `wish_${travel.id}`;
+        const alreadyExists = missions.some(m => m.id === missionId);
+        if (!alreadyExists) {
+          const autoMission: Mission = {
+            id: missionId,
+            title: `Conhecer ${travel.city}`,
+            description: `Visitar ${travel.city}, ${travel.state}`,
+            type: 'custom',
+            category: 'cities',
+            target: 1,
+            progress: 0,
+            completed: false,
+            icon: travel.status === 'food_wishlist' ? 'FaUtensils' : 'FaMapMarkerAlt',
+          };
+          await handleAddMission(autoMission);
+        }
+      }
     } catch (err) {
       console.error('Erro ao salvar:', err);
       showToast('Erro ao salvar. Tente novamente.');
@@ -241,6 +276,20 @@ export default function HomeClient() {
     showToast(`Perfil de ${profile.name} atualizado!`);
   };
 
+  const handleStateImageUpload = (stateName: string, image: string) => {
+    const updated = { ...stateImages, [stateName]: image };
+    setStateImages(updated);
+    localStorage.setItem('stateImages', JSON.stringify(updated));
+    showToast(`Foto de ${stateName} salva!`);
+  };
+
+  const handleSetHomeLocation = (city: string, state: string, lat: number, lng: number) => {
+    const home = { city, state, lat, lng };
+    setHomeLocation(home);
+    localStorage.setItem('homeLocation', JSON.stringify(home));
+    showToast(`Localização definida: ${city}, ${state}`);
+  };
+
   const p1Name = profiles.find(p => p.id === 'p1')?.name || 'Aleph';
   const p2Name = profiles.find(p => p.id === 'p2')?.name || 'Alice';
 
@@ -306,7 +355,13 @@ export default function HomeClient() {
       </header>
 
       <div className="app-body">
-        <aside className="sidebar">
+        <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
+          <div className="sidebar-handle" onClick={() => setSidebarCollapsed(!sidebarCollapsed)}>
+            <span className="sidebar-handle-bar" />
+          </div>
+          <button className="sidebar-toggle-desktop" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} title={sidebarCollapsed ? 'Expandir' : 'Minimizar'}>
+            {sidebarCollapsed ? <FaChevronRight size={12} /> : <FaChevronLeft size={12} />}
+          </button>
           {/* Sidebar tabs */}
           <div className="sidebar-tabs">
             <button className={`sidebar-tab ${sidebarTab === 'list' ? 'active' : ''}`} onClick={() => setSidebarTab('list')}>
@@ -413,13 +468,17 @@ export default function HomeClient() {
                 missions={missions}
                 onAddMission={handleAddMission}
                 onDeleteMission={handleDeleteMission}
+                stateImages={stateImages}
+                onStateImageUpload={handleStateImageUpload}
+                homeLocation={homeLocation}
+                onSetHomeLocation={handleSetHomeLocation}
               />
             </div>
           )}
         </aside>
 
         <div className="map-container">
-          <MapView travels={travels} onTravelClick={handleTravelClick} selectedTravel={selectedTravel} />
+          <MapView travels={travels} onTravelClick={handleTravelClick} selectedTravel={selectedTravel} homeLocation={homeLocation} />
           <button
             className="add-btn"
             onClick={() => { setEditTravel(null); setShowForm(true); }}
@@ -469,6 +528,7 @@ export default function HomeClient() {
       )}
 
       {toast && <div className="toast">{toast}</div>}
+      {missionToast && <div className="toast-mission"><FaStar size={12} className="toast-mission-icon" /> {missionToast}</div>}
 
       {editProfile && (
         <ProfileEditor

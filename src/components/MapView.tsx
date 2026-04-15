@@ -9,6 +9,7 @@ interface MapViewProps {
     travels: Travel[];
     onTravelClick: (travel: Travel) => void;
     selectedTravel: Travel | null;
+    homeLocation?: { city: string; state: string; lat: number; lng: number } | null;
 }
 
 const visitedIcon = () =>
@@ -50,7 +51,19 @@ const foodIcon = () =>
         popupAnchor: [0, -40],
     });
 
-export default function MapView({ travels, onTravelClick, selectedTravel }: MapViewProps) {
+const homeIcon = () =>
+    L.divIcon({
+        className: '',
+        html: `<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="10" fill="#5ba4cf" stroke="white" stroke-width="3"/>
+      <circle cx="12" cy="12" r="4" fill="white"/>
+    </svg>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+        popupAnchor: [0, -12],
+    });
+
+export default function MapView({ travels, onTravelClick, selectedTravel, homeLocation }: MapViewProps) {
     const mapRef = useRef<L.Map | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const markersRef = useRef<L.LayerGroup | null>(null);
@@ -109,7 +122,16 @@ export default function MapView({ travels, onTravelClick, selectedTravel }: MapV
 
             marker.on('click', () => onTravelClick(travel));
         });
-    }, [travels, onTravelClick]);
+
+        // Home location marker
+        if (homeLocation && homeLocation.lat && homeLocation.lng) {
+            const homeMarker = L.marker([homeLocation.lat, homeLocation.lng], { icon: homeIcon() }).addTo(markersGroup);
+            homeMarker.bindPopup(`
+                <div class="popup-title">🏠 Nossa casa</div>
+                <div class="popup-subtitle">${homeLocation.city}, ${homeLocation.state}</div>
+            `);
+        }
+    }, [travels, onTravelClick, homeLocation]);
 
     useEffect(() => {
         if (!mapRef.current || !selectedTravel) return;

@@ -3,13 +3,13 @@
 import { useState } from 'react';
 import { Travel, Vehicle, TRANSPORT_LABELS, ACTIVITY_OPTIONS, TransportType, HotelStay, RestaurantVisit, CityVisit, UserProfile } from '@/types/travel';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Navigation, Pagination, Thumbs } from 'swiper/modules';
+import { Pagination, Thumbs } from 'swiper/modules';
 import type { Swiper as SwiperType } from 'swiper';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import 'swiper/css/thumbs';
-import { FaCar, FaMotorcycle, FaBus, FaPlane, FaTrain, FaBicycle, FaWalking, FaRocket, FaUmbrellaBeach, FaHiking, FaUtensils, FaLandmark, FaShoppingBag, FaParachuteBox, FaHeart, FaSpa, FaMoon, FaLeaf, FaChurch, FaFutbol, FaCamera, FaWater, FaPizzaSlice, FaFilm, FaGlassCheers, FaMusic, FaCoffee, FaSwimmingPool, FaTree, FaPaintBrush, FaStar, FaMapMarkerAlt, FaClock, FaRoute, FaTimes, FaPencilAlt, FaCalendarAlt, FaCheck, FaHotel, FaUser, FaCompass, FaImages, FaPlus } from 'react-icons/fa';
+import { FaCar, FaMotorcycle, FaBus, FaPlane, FaTrain, FaBicycle, FaWalking, FaRocket, FaUmbrellaBeach, FaHiking, FaUtensils, FaLandmark, FaShoppingBag, FaParachuteBox, FaHeart, FaSpa, FaMoon, FaLeaf, FaChurch, FaFutbol, FaCamera, FaWater, FaPizzaSlice, FaFilm, FaGlassCheers, FaMusic, FaCoffee, FaSwimmingPool, FaTree, FaPaintBrush, FaStar, FaMapMarkerAlt, FaClock, FaRoute, FaTimes, FaPencilAlt, FaCalendarAlt, FaCheck, FaHotel, FaUser, FaCompass, FaImages, FaPlus, FaWineGlassAlt, FaHamburger, FaIceCream, FaAppleAlt, FaConciergeBell } from 'react-icons/fa';
 import { v4 as uuidv4 } from 'uuid';
 
 const TRANSPORT_ICON_MAP: Record<TransportType, React.ReactNode> = {
@@ -25,6 +25,8 @@ const ACTIVITY_ICON_MAP: Record<string, React.ReactNode> = {
     FaPizzaSlice: <FaPizzaSlice />, FaFilm: <FaFilm />, FaGlassCheers: <FaGlassCheers />,
     FaMusic: <FaMusic />, FaCoffee: <FaCoffee />, FaSwimmingPool: <FaSwimmingPool />,
     FaTree: <FaTree />, FaPaintBrush: <FaPaintBrush />,
+    FaWineGlassAlt: <FaWineGlassAlt />, FaHamburger: <FaHamburger />,
+    FaIceCream: <FaIceCream />, FaAppleAlt: <FaAppleAlt />, FaConciergeBell: <FaConciergeBell />,
 };
 
 interface TravelDetailProps {
@@ -97,8 +99,7 @@ export default function TravelDetail({ travel, onClose, onEdit, onUpdate, vehicl
                 {allPhotos.length > 0 && (
                     <div className="detail-gallery-swiper">
                         <Swiper
-                            modules={[Navigation, Pagination, Thumbs]}
-                            navigation
+                            modules={[Pagination, Thumbs]}
                             pagination={{ clickable: true }}
                             thumbs={thumbsSwiper ? { swiper: thumbsSwiper } : undefined}
                             spaceBetween={0}

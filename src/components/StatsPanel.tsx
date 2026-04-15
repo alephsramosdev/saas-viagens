@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { Travel, Vehicle, DiscardedCity, Mission, BRAZILIAN_STATES, STATE_FLAG_URLS, STATE_CITY_COUNTS } from '@/types/travel';
-import { FaMapMarkerAlt, FaTrophy, FaCar, FaTrash, FaHeart, FaRoute, FaClock, FaStar, FaMoneyBillWave, FaBan, FaPlus, FaTimes, FaChevronDown, FaChevronUp, FaLock, FaLockOpen, FaFlag, FaCrown, FaGem, FaMedal, FaCheck, FaUtensils, FaGlobeAmericas } from 'react-icons/fa';
+import { useState, useRef } from 'react';
+import { Travel, Vehicle, DiscardedCity, Mission, BRAZILIAN_STATES, STATE_FLAG_URLS, STATE_CITY_COUNTS, ACTIVITY_OPTIONS } from '@/types/travel';
+import { FaMapMarkerAlt, FaTrophy, FaCar, FaTrash, FaHeart, FaRoute, FaClock, FaStar, FaMoneyBillWave, FaBan, FaPlus, FaTimes, FaChevronDown, FaChevronUp, FaLock, FaLockOpen, FaFlag, FaCrown, FaGem, FaMedal, FaCheck, FaUtensils, FaGlobeAmericas, FaCamera, FaImage, FaHome, FaPencilAlt } from 'react-icons/fa';
 import { v4 as uuidv4 } from 'uuid';
+import { searchCityCoords } from '@/lib/ibge';
 
 const MISSION_ICON_MAP: Record<string, React.ReactNode> = {
     FaMapMarkerAlt: <FaMapMarkerAlt size={14} />,
@@ -30,9 +31,13 @@ interface StatsPanelProps {
     missions: Mission[];
     onAddMission: (mission: Mission) => void;
     onDeleteMission: (id: string) => void;
+    stateImages: Record<string, string>;
+    onStateImageUpload: (stateName: string, image: string) => void;
+    homeLocation?: { city: string; state: string; lat: number; lng: number } | null;
+    onSetHomeLocation?: (city: string, state: string, lat: number, lng: number) => void;
 }
 
-export default function StatsPanel({ travels, vehicles, onDeleteVehicle, discardedCities, onDiscardCity, onUndiscardCity, missions, onAddMission, onDeleteMission }: StatsPanelProps) {
+export default function StatsPanel({ travels, vehicles, onDeleteVehicle, discardedCities, onDiscardCity, onUndiscardCity, missions, onAddMission, onDeleteMission, stateImages, onStateImageUpload, homeLocation, onSetHomeLocation }: StatsPanelProps) {
     const [expandedState, setExpandedState] = useState<string | null>(null);
     const [showDiscardForm, setShowDiscardForm] = useState(false);
     const [discardCity, setDiscardCity] = useState('');
@@ -42,14 +47,21 @@ export default function StatsPanel({ travels, vehicles, onDeleteVehicle, discard
     const [newMissionTitle, setNewMissionTitle] = useState('');
     const [newMissionDesc, setNewMissionDesc] = useState('');
     const [newMissionTarget, setNewMissionTarget] = useState(1);
+    const [newMissionCategory, setNewMissionCategory] = useState<Mission['category']>('cities');
+    const [newMissionIcon, setNewMissionIcon] = useState('FaStar');
+    const stateImageRef = useRef<HTMLInputElement>(null);
+    const [uploadingState, setUploadingState] = useState<string | null>(null);
+    const [showHomeForm, setShowHomeForm] = useState(false);
+    const [homeCity, setHomeCity] = useState('');
+    const [homeState, setHomeState] = useState('');
 
     const visited = travels.filter(t => t.status === 'visited');
     const wishlists = travels.filter(t => t.status === 'wishlist' || t.status === 'food_wishlist');
 
-    // Cities unlocked by state — only show states that have been "touched"
-    const stateMap: Record<string, { visited: string[]; wishlist: string[]; total: number }> = {};
+    // Cities unlocked by state — include stops as 'passada'
+    const stateMap: Record<string, { visited: string[]; wishlist: string[]; passada: string[]; total: number }> = {};
     travels.forEach(t => {
-        if (!stateMap[t.state]) stateMap[t.state] = { visited: [], wishlist: [], total: 0 };
+        if (!stateMap[t.state]) stateMap[t.state] = { visited: [], wishlist: [], passada: [], total: 0 };
         stateMap[t.state].total++;
         if (t.status === 'visited' && !stateMap[t.state].visited.includes(t.city)) {
             stateMap[t.state].visited.push(t.city);
@@ -57,10 +69,22 @@ export default function StatsPanel({ travels, vehicles, onDeleteVehicle, discard
         if (t.status !== 'visited' && !stateMap[t.state].wishlist.includes(t.city)) {
             stateMap[t.state].wishlist.push(t.city);
         }
+        // Stops count as 'passada' cities (Item 4)
+        if (t.status === 'visited' && t.stops) {
+            t.stops.forEach(stop => {
+                if (stop.city && stop.state) {
+                    const stopStateName = BRAZILIAN_STATES.find(s => s.uf === stop.state)?.name || stop.state;
+                    if (!stateMap[stopStateName]) stateMap[stopStateName] = { visited: [], wishlist: [], passada: [], total: 0 };
+                    if (!stateMap[stopStateName].visited.includes(stop.city) && !stateMap[stopStateName].passada.includes(stop.city)) {
+                        stateMap[stopStateName].passada.push(stop.city);
+                    }
+                }
+            });
+        }
     });
 
     const stateEntries = Object.entries(stateMap)
-        .filter(([, data]) => data.visited.length > 0)
+        .filter(([, data]) => data.visited.length > 0 || data.passada.length > 0)
         .sort((a, b) => b[1].visited.length - a[1].visited.length);
 
     const totalKm = visited.reduce((sum, t) => sum + (t.distanceKm || 0), 0);
@@ -107,17 +131,43 @@ export default function StatsPanel({ travels, vehicles, onDeleteVehicle, discard
             title: newMissionTitle.trim(),
             description: newMissionDesc.trim(),
             type: 'custom',
-            category: 'special',
+            category: newMissionCategory,
             target: newMissionTarget,
             progress: 0,
             completed: false,
-            icon: 'FaStar',
+            icon: newMissionIcon,
         });
         setNewMissionTitle('');
         setNewMissionDesc('');
         setNewMissionTarget(1);
+        setNewMissionCategory('cities');
+        setNewMissionIcon('FaStar');
         setShowAddMission(false);
     };
+
+    const handleStateImageUpload = (e: React.ChangeEvent<HTMLInputElement>, stateName: string) => {
+        const file = e.target.files?.[0];
+        if (!file || file.size > 5 * 1024 * 1024) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            if (ev.target?.result) {
+                onStateImageUpload(stateName, ev.target.result as string);
+                setUploadingState(null);
+            }
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const MISSION_CATEGORIES = [
+        { value: 'cities', label: 'Cidades', icon: 'FaMapMarkerAlt' },
+        { value: 'states', label: 'Estados', icon: 'FaFlag' },
+        { value: 'distance', label: 'Distância', icon: 'FaRoute' },
+        { value: 'time', label: 'Tempo', icon: 'FaClock' },
+        { value: 'food', label: 'Gastronomia', icon: 'FaUtensils' },
+        { value: 'special', label: 'Especial', icon: 'FaStar' },
+    ];
+
+    const MISSION_ICONS = ['FaMapMarkerAlt', 'FaGlobeAmericas', 'FaTrophy', 'FaCrown', 'FaFlag', 'FaRoute', 'FaClock', 'FaUtensils', 'FaStar', 'FaHeart', 'FaGem', 'FaMedal'];
 
     return (
         <div className="stats-panel">
@@ -176,6 +226,11 @@ export default function StatsPanel({ travels, vehicles, onDeleteVehicle, discard
 
                             return (
                                 <div key={stateName} className="state-item-card">
+                                    {stateImages[stateName] && (
+                                        <div className="state-cover-image">
+                                            <img src={stateImages[stateName]} alt={stateName} />
+                                        </div>
+                                    )}
                                     <button className="state-item-header" onClick={() => setExpandedState(isExpanded ? null : stateName)}>
                                         <div className="state-flag">
                                             {STATE_FLAG_URLS[uf] ? (
@@ -203,6 +258,9 @@ export default function StatsPanel({ travels, vehicles, onDeleteVehicle, discard
                                                 {data.visited.map(city => (
                                                     <span key={city} className="state-city-tag visited"><FaLockOpen size={8} /> {city}</span>
                                                 ))}
+                                                {data.passada.map(city => (
+                                                    <span key={city} className="state-city-tag passada"><FaRoute size={8} /> {city}</span>
+                                                ))}
                                                 {data.wishlist.map(city => (
                                                     <span key={city} className="state-city-tag wishlist"><FaLock size={8} /> {city}</span>
                                                 ))}
@@ -211,14 +269,55 @@ export default function StatsPanel({ travels, vehicles, onDeleteVehicle, discard
                                                 <div className="state-fill" style={{ width: `${percent}%` }} />
                                             </div>
                                             <span className="state-bar-label">{data.visited.length} / {totalCities} cidades</span>
+                                            <button type="button" className="state-add-image-btn" onClick={() => { setUploadingState(stateName); stateImageRef.current?.click(); }}>
+                                                <FaCamera size={10} /> {stateImages[stateName] ? 'Trocar foto do estado' : 'Adicionar foto do estado'}
+                                            </button>
                                         </div>
                                     )}
                                 </div>
                             );
                         })}
                     </div>
+                    <input ref={stateImageRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => uploadingState && handleStateImageUpload(e, uploadingState)} />
                 </div>
             )}
+
+            {/* Home Location */}
+            <div className="home-location-section">
+                <h4><FaHome size={12} /> Nossa localização</h4>
+                {homeLocation ? (
+                    <div className="home-location-display">
+                        <span className="home-dot" />
+                        <span>{homeLocation.city}, {homeLocation.state}</span>
+                        <button className="btn-icon-sm" onClick={() => setShowHomeForm(true)} style={{ marginLeft: 'auto' }}><FaPencilAlt size={10} /></button>
+                    </div>
+                ) : (
+                    <button className="add-food-btn" onClick={() => setShowHomeForm(true)}>
+                        <FaPlus size={10} /> Definir localização
+                    </button>
+                )}
+                {showHomeForm && (
+                    <div className="discard-form" style={{ marginTop: 8 }}>
+                        <select className="form-select" value={homeState} onChange={e => setHomeState(e.target.value)}>
+                            <option value="">Estado</option>
+                            {BRAZILIAN_STATES.map(s => <option key={s.uf} value={s.name}>{s.name} ({s.uf})</option>)}
+                        </select>
+                        <input className="form-input" placeholder="Cidade" value={homeCity} onChange={e => setHomeCity(e.target.value)} />
+                        <div style={{ display: 'flex', gap: 6 }}>
+                            <button className="btn btn-primary" style={{ fontSize: '0.75rem', padding: '6px 12px' }} onClick={async () => {
+                                if (homeCity && homeState && onSetHomeLocation) {
+                                    const coords = await searchCityCoords(homeCity, homeState);
+                                    onSetHomeLocation(homeCity, homeState, coords?.lat || -14.235, coords?.lng || -51.9253);
+                                    setShowHomeForm(false);
+                                    setHomeCity('');
+                                    setHomeState('');
+                                }
+                            }}>Salvar</button>
+                            <button className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '6px 12px' }} onClick={() => setShowHomeForm(false)}>Cancelar</button>
+                        </div>
+                    </div>
+                )}
+            </div>
 
             {/* Discarded cities */}
             <div className="stats-discarded">
@@ -304,13 +403,56 @@ export default function StatsPanel({ travels, vehicles, onDeleteVehicle, discard
                     })}
                 </div>
                 {showAddMission ? (
-                    <div className="discard-form">
-                        <input className="form-input" placeholder="Nome da missão" value={newMissionTitle} onChange={e => setNewMissionTitle(e.target.value)} />
-                        <input className="form-input" placeholder="Descrição" value={newMissionDesc} onChange={e => setNewMissionDesc(e.target.value)} />
-                        <input className="form-input" type="number" min={1} placeholder="Meta" value={newMissionTarget} onChange={e => setNewMissionTarget(Number(e.target.value))} />
-                        <div style={{ display: 'flex', gap: 6 }}>
-                            <button className="btn btn-primary" style={{ fontSize: '0.75rem', padding: '6px 12px' }} onClick={handleAddMissionSubmit}>Criar</button>
-                            <button className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '6px 12px' }} onClick={() => setShowAddMission(false)}>Cancelar</button>
+                    <div className="modal-overlay" onClick={() => setShowAddMission(false)}>
+                        <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">
+                                <h2><FaTrophy size={16} /> Criar Missão</h2>
+                                <button className="modal-close" onClick={() => setShowAddMission(false)} type="button"><FaTimes size={16} /></button>
+                            </div>
+                            <div className="modal-body">
+                                <div className="form-group">
+                                    <label>Nome da missão</label>
+                                    <input className="form-input" placeholder="Ex: Conhecer o Nordeste" value={newMissionTitle} onChange={e => setNewMissionTitle(e.target.value)} />
+                                </div>
+                                <div className="form-group">
+                                    <label>Descrição</label>
+                                    <input className="form-input" placeholder="Ex: Visitar 5 estados do Nordeste" value={newMissionDesc} onChange={e => setNewMissionDesc(e.target.value)} />
+                                </div>
+                                <div className="form-group">
+                                    <label>Categoria</label>
+                                    <div className="mission-category-grid">
+                                        {MISSION_CATEGORIES.map(cat => (
+                                            <button key={cat.value} type="button"
+                                                className={`mission-cat-option ${newMissionCategory === cat.value ? 'selected' : ''}`}
+                                                onClick={() => { setNewMissionCategory(cat.value as Mission['category']); setNewMissionIcon(cat.icon); }}>
+                                                {MISSION_ICON_MAP[cat.icon]} <span>{cat.label}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="form-group">
+                                    <label>Ícone</label>
+                                    <div className="mission-icon-grid">
+                                        {MISSION_ICONS.map(ic => (
+                                            <button key={ic} type="button"
+                                                className={`mission-icon-option ${newMissionIcon === ic ? 'selected' : ''}`}
+                                                onClick={() => setNewMissionIcon(ic)}>
+                                                {MISSION_ICON_MAP[ic]}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="form-group">
+                                    <label>Meta (quantidade)</label>
+                                    <input className="form-input" type="number" min={1} value={newMissionTarget} onChange={e => setNewMissionTarget(Number(e.target.value))} />
+                                </div>
+                                <div className="form-actions">
+                                    <button type="button" className="btn btn-secondary" onClick={() => setShowAddMission(false)}>Cancelar</button>
+                                    <button type="button" className="btn btn-primary" onClick={handleAddMissionSubmit} disabled={!newMissionTitle.trim()}>
+                                        <FaCheck size={12} /> Criar Missão
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 ) : (
