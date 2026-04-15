@@ -144,13 +144,15 @@ a {
   overflow: hidden;
   flex-shrink: 0;
   position: relative;
-  transition: width 0.3s ease, min-width 0.3s ease, margin-left 0.3s ease, transform 0.3s ease;
+  transition: width 0.3s ease, min-width 0.3s ease, transform 0.3s ease;
 }
 
 .sidebar-tabs {
   display: flex;
   border-bottom: 1px solid var(--border);
   background: var(--bg-primary);
+  width: 380px;
+  min-width: 380px;
 }
 
 .sidebar-tab {
@@ -187,6 +189,8 @@ a {
   border-bottom: 1px solid var(--border);
   background: var(--bg-secondary);
   flex-shrink: 0;
+  width: 380px;
+  min-width: 380px;
 }
 
 .sidebar-filters {
@@ -250,6 +254,8 @@ a {
   flex-direction: column;
   gap: 10px;
   min-height: 0;
+  width: 380px;
+  min-width: 380px;
 }
 
 .sidebar-list::-webkit-scrollbar {
@@ -1920,36 +1926,36 @@ a {
 
   /* ===== Mobile Sidebar: bottom sheet style ===== */
   .sidebar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
     width: 100% !important;
     height: 55dvh;
-    min-height: 55dvh;
+    min-height: auto !important;
     max-height: 90dvh;
     border-right: none;
     border-top: 1px solid var(--border);
-    order: 2;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    position: relative;
-    transition: height 0.3s ease, min-height 0.3s ease, transform 0.3s ease;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border-radius: 16px 16px 0 0;
     box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2);
     z-index: 1000;
   }
 
   .sidebar.collapsed {
-    height: 60px !important;
-    min-height: 60px !important;
-    max-height: 60px !important;
-    border-top: 1px solid var(--border);
-    overflow: hidden;
-    width: 100% !important;
-    border-radius: 16px 16px 0 0;
+    transform: translateY(calc(100% - 66px));
+    /* Override desktop collapses */
+    margin-left: 0 !important;
   }
 
   .sidebar.collapsed .sidebar-header,
   .sidebar.collapsed .sidebar-list {
-    display: none;
+    /* Let them render normally, they are just translated offscreen */
+    opacity: 1;
+    visibility: visible;
   }
 
   .sidebar.collapsed .sidebar-tabs {
@@ -1993,6 +1999,8 @@ a {
     border-top: none;
     display: flex;
     justify-content: space-around;
+    width: 100% !important;
+    min-width: 0 !important;
   }
 
   .sidebar-tab {
@@ -2007,6 +2015,8 @@ a {
   .sidebar-header {
     padding: 10px 14px;
     flex-shrink: 0;
+    width: 100% !important;
+    min-width: 0 !important;
   }
 
   .sidebar-filters {
@@ -2036,11 +2046,13 @@ a {
     min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    width: 100% !important;
+    min-width: 0 !important;
   }
 
   .map-container {
-    flex: 1;
-    min-height: 30dvh;
+    flex: none;
+    height: calc(100% - 66px);
     order: 1;
     position: relative;
     z-index: 1;
@@ -4958,11 +4970,12 @@ a {
 
 /* ===== Collapsible Sidebar ===== */
 
-/* Desktop toggle: tab on the right edge */
+/* Desktop toggle: sliding tab outside sidebar */
 .sidebar-toggle-desktop {
   position: absolute;
   top: 50%;
-  right: -14px;
+  left: 380px;
+  /* Attach to expanded right edge */
   transform: translateY(-50%);
   width: 28px;
   height: 56px;
@@ -4975,8 +4988,12 @@ a {
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
-  z-index: 10;
-  transition: all 0.2s;
+  z-index: 2000;
+  transition: left 0.3s ease, background 0.2s, color 0.2s;
+}
+
+.sidebar-toggle-desktop.collapsed {
+  left: 0;
 }
 
 .sidebar-toggle-desktop:hover {
@@ -4985,9 +5002,6 @@ a {
 }
 
 @media (min-width: 769px) {
-  .sidebar {
-    overflow: visible !important;
-  }
 
   /* Mobile handle: drag bar at top of sidebar */
   .sidebar-handle {
@@ -4995,9 +5009,8 @@ a {
   }
 
   .sidebar.collapsed {
-    margin-left: -380px !important;
-    width: 380px !important;
-    min-width: 380px !important;
+    width: 0 !important;
+    min-width: 0 !important;
     border-right: none;
   }
 
@@ -5007,12 +5020,7 @@ a {
   .sidebar.collapsed .vehicles-panel,
   .sidebar.collapsed .stats-panel {
     opacity: 0;
-    visibility: hidden;
     pointer-events: none;
-  }
-
-  .sidebar.collapsed .sidebar-toggle-desktop {
-    right: -28px;
   }
 }
 

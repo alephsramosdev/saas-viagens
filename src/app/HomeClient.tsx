@@ -359,9 +359,6 @@ export default function HomeClient() {
           <div className="sidebar-handle" onClick={() => setSidebarCollapsed(!sidebarCollapsed)}>
             <span className="sidebar-handle-bar" />
           </div>
-          <button className="sidebar-toggle-desktop" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} title={sidebarCollapsed ? 'Expandir' : 'Minimizar'}>
-            {sidebarCollapsed ? <FaChevronRight size={12} /> : <FaChevronLeft size={12} />}
-          </button>
           {/* Sidebar tabs */}
           <div className="sidebar-tabs">
             <button className={`sidebar-tab ${sidebarTab === 'list' ? 'active' : ''}`} onClick={() => setSidebarTab('list')}>
@@ -476,6 +473,10 @@ export default function HomeClient() {
             </div>
           )}
         </aside>
+
+        <button className={`sidebar-toggle-desktop ${sidebarCollapsed ? 'collapsed' : ''}`} onClick={() => setSidebarCollapsed(!sidebarCollapsed)} title={sidebarCollapsed ? 'Expandir' : 'Minimizar'}>
+          {sidebarCollapsed ? <FaChevronRight size={12} /> : <FaChevronLeft size={12} />}
+        </button>
 
         <div className="map-container">
           <MapView travels={travels} onTravelClick={handleTravelClick} selectedTravel={selectedTravel} homeLocation={homeLocation} />
